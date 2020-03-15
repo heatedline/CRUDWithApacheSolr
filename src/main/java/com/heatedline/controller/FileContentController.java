@@ -25,6 +25,10 @@ import com.heatedline.dto.FileDTO;
 import com.heatedline.model.File;
 import com.heatedline.repository.FileRepository;
 
+/**
+ * @author heatedline
+ *
+ */
 @RestController
 public class FileContentController {
 
