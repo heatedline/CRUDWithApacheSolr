@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>2.2.6.BUILD-SNAPSHOT</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.heatedline</groupId>
 	<artifactId>CRUDWithApacheSolr</artifactId>
@@ -25,9 +26,67 @@
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.springframework.data/spring-data-solr -->
 		<dependency>
-		    <groupId>org.springframework.data</groupId>
-		    <artifactId>spring-data-solr</artifactId>
+			<groupId>org.springframework.data</groupId>
+			<artifactId>spring-data-solr</artifactId>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.solr/solr-solrj -->
+		<dependency>
+			<groupId>org.apache.solr</groupId>
+			<artifactId>solr-solrj</artifactId>
+			<version>8.4.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.codehaus.woodstox</groupId>
+					<artifactId>wstx-asl</artifactId>
+				</exclusion>
+				<exclusion>
+					<artifactId>log4j</artifactId>
+					<groupId>log4j</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-rest</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.github.paulcwarren</groupId>
+			<artifactId>spring-content-fs-boot-starter</artifactId>
+			<version>1.0.0.M7</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.github.paulcwarren/spring-content-commons -->
+		<dependency>
+			<groupId>com.github.paulcwarren</groupId>
+			<artifactId>spring-content-commons</artifactId>
+			<version>1.0.0.M7</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.github.paulcwarren/spring-content-solr -->
+		<dependency>
+			<groupId>com.github.paulcwarren</groupId>
+			<artifactId>spring-content-solr</artifactId>
+			<version>1.0.0.M7</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.github.paulcwarren/spring-content-renditions -->
+		<dependency>
+			<groupId>com.github.paulcwarren</groupId>
+			<artifactId>spring-content-renditions</artifactId>
+			<version>1.0.0.M7</version>
+		</dependency>
+
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
