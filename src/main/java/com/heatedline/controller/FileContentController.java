@@ -63,7 +63,6 @@ public class FileContentController {
 
 	@RequestMapping(value = "/files/{fileId}", method = RequestMethod.GET)
 	public ResponseEntity<?> getContent(@PathVariable("fileId") Long id) {
-
 		Optional<File> f = fileRepository.findById(id);
 		if (f.isPresent()) {
 			InputStreamResource inputStreamResource = new InputStreamResource(contentStore.getContent(f.get()));
@@ -73,6 +72,17 @@ public class FileContentController {
 			return new ResponseEntity<Object>(inputStreamResource, headers, HttpStatus.OK);
 		}
 		return null;
+	}
+	
+	@GetMapping("/getFiles")
+	public ResponseEntity<?> getFiles() {
+		List<File> fileListOutput = new ArrayList<File>();
+		Iterable<File> fileList = fileRepository.findAll();
+		for(File file : fileList) {
+			fileListOutput.add(file);
+		}
+		
+		return new ResponseEntity<List<File>>(fileListOutput, HttpStatus.OK);
 	}
 	
 	@GetMapping("search")

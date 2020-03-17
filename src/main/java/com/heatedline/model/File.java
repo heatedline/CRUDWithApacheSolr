@@ -1,5 +1,6 @@
 package com.heatedline.model;
 
+import java.io.Serializable;
 import java.util.Date;
 
 import javax.persistence.Entity;
@@ -13,12 +14,13 @@ import org.springframework.content.commons.annotations.ContentId;
 import org.springframework.content.commons.annotations.ContentLength;
 
 @Entity
-//@Table(name = "file")
-//@NamedQuery(name = "File.findAll", query = "SELECT c FROM File c")
-public class File {
+@Table(name = "file")
+@NamedQuery(name = "File.findAll", query = "SELECT f FROM File f")
+public class File implements Serializable {
+	private static final long serialVersionUID = 1L;
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 	private String name;
 	private Date created = new Date();
@@ -26,8 +28,10 @@ public class File {
 
 	@ContentId
 	private String contentId;
+	
 	@ContentLength
 	private long contentLength;
+	
 	private String mimeType = "text/plain";
 
 	public Long getId() {
