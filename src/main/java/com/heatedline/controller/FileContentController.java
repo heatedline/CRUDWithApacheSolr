@@ -52,6 +52,8 @@ public class FileContentController {
 			f.get().setMimeType(fileDTO.getFile()[0].getContentType());
 
 			contentStore.setContent(f.get(), fileDTO.getFile()[0].getInputStream());
+			
+			//contentStore.getRendition(entity, mimeType);
 
 			// save updated content-related info
 			fileRepository.save(f.get());
@@ -85,13 +87,30 @@ public class FileContentController {
 		return new ResponseEntity<List<File>>(fileListOutput, HttpStatus.OK);
 	}
 	
+	@GetMapping("delete")
+	public ResponseEntity<?> delete(@RequestParam(value = "fileId") Long fileId) {
+		String status = "";
+		Optional<File> f = fileRepository.findById(fileId);
+		if (f.isPresent()) {
+			fileRepository.delete(f.get());
+			contentStore.unsetContent(f.get());
+			status = "deleted";
+		}
+		return new ResponseEntity<String>(status, HttpStatus.OK);
+	}
+	
 	@GetMapping("search")
 	public ResponseEntity<?> search(@RequestParam(value = "searchTerm") String searchTerm) {
+		File file = null;
 		Iterable<String> objList = contentStore.search(searchTerm);
 		List<File> fileList = new ArrayList<File>();
 		for(String s : objList) {
-			File file = fileRepository.findByContentId(s);
+			file = fileRepository.findByContentId(s);
 			fileList.add(file);
+		}
+		
+		if(fileList.size() == 0) {
+			fileList = fileRepository.findByNameContainingIgnoreCase(searchTerm);
 		}
 		
 		return new ResponseEntity<List<File>>(fileList, HttpStatus.OK);
