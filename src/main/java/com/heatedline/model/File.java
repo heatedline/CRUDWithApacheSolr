@@ -12,6 +12,7 @@ import javax.persistence.Table;
 
 import org.springframework.content.commons.annotations.ContentId;
 import org.springframework.content.commons.annotations.ContentLength;
+import org.springframework.content.commons.annotations.MimeType;
 
 @Entity
 @Table(name = "file")
@@ -32,6 +33,7 @@ public class File implements Serializable {
 	@ContentLength
 	private long contentLength;
 	
+	@MimeType
 	private String mimeType = "text/plain";
 
 	public Long getId() {

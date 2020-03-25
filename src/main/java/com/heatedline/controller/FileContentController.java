@@ -1,9 +1,14 @@
 package com.heatedline.controller;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import javax.imageio.ImageIO;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,8 +66,6 @@ public class FileContentController {
 
 			contentStore.setContent(f.get(), fileDTO.getFile()[0].getInputStream());
 			
-			//contentStore.getRendition(entity, mimeType);
-
 			// save updated content-related info
 			fileRepository.save(f.get());
 
@@ -70,9 +73,49 @@ public class FileContentController {
 		}
 		return null;
 	}
+	
+	@GetMapping("renderToImage")
+	public ResponseEntity<?> renderFileToImage(@RequestParam(value = "fileId") Long id, HttpServletResponse response) {
+		try {
+			System.setProperty("sun.java2d.cmm", "sun.java2d.cmm.kcms.KcmsServiceProvider");
+			Optional<File> f = fileRepository.findById(id);
+			if (f.isPresent()) {
+				byte[] imageByteArr = IOUtils.toByteArray(contentStore.getRendition(f.get(), "image/jpg"));
+				ByteArrayInputStream bis = new ByteArrayInputStream(imageByteArr);
+			    response.setContentType(MediaType.IMAGE_JPEG_VALUE);
+			    IOUtils.copy(bis, response.getOutputStream());
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	@RequestMapping(value = "/documentFiles/{fileId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_PDF_VALUE)
+	public ResponseEntity<?> getDocumentContent(@PathVariable("fileId") Long id, @RequestHeader HttpHeaders headers,  HttpServletResponse response) {
+		try {
+			Optional<File> f = fileRepository.findById(id);
+			if (f.isPresent()) {
+				byte[] content = IOUtils.toByteArray(contentStore.getContent(f.get()));
+				ByteArrayInputStream bis = new ByteArrayInputStream(content);
+				
+				IOUtils.copy(bis, response.getOutputStream());
 
-	@RequestMapping(value = "/files/{fileId}", method = RequestMethod.GET)
-	public ResponseEntity<ResourceRegion> getContent(@PathVariable("fileId") Long id, @RequestHeader HttpHeaders headers) {
+			    response.setContentType(f.get().getMimeType());
+			    response.setHeader("Content-disposition", " filename=" + f.get().getName());
+
+			    response.flushBuffer();
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	@RequestMapping(value = "/audioVideoFiles/{fileId}", method = RequestMethod.GET)
+	public ResponseEntity<ResourceRegion> getAudioVideoContent(@PathVariable("fileId") Long id, @RequestHeader HttpHeaders headers) {
 		try {
 			Optional<File> f = fileRepository.findById(id);
 			if (f.isPresent()) {
