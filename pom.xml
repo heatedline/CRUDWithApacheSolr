@@ -10,9 +10,9 @@
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.heatedline</groupId>
-	<artifactId>CRUDWithApacheSolr</artifactId>
+	<artifactId>SpringContentSolr</artifactId>
 	<version>0.0.1</version>
-	<name>CRUDWithApacheSolr</name>
+	<name>SpringContentSolr</name>
 	<description>Demo project for Spring Boot CRUD operations with Apache Solr</description>
 
 	<properties>

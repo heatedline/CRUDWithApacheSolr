@@ -21,17 +21,17 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @SpringBootApplication
 @EnableAutoConfiguration
-public class CrudWithApacheSolrApplication extends SpringBootServletInitializer {
+public class SpringContentSolrApplication extends SpringBootServletInitializer {
 
 	private EntityManager entityManager;
 	
 	public static void main(String[] args) {
-		SpringApplication.run(CrudWithApacheSolrApplication.class, args);
+		SpringApplication.run(SpringContentSolrApplication.class, args);
 	}
 	
 	@Override
 	protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
-		return application.sources(CrudWithApacheSolrApplication.class);
+		return application.sources(SpringContentSolrApplication.class);
 	}
 	
 	@Bean
