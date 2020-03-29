@@ -1,23 +1,18 @@
 package com.heatedline.controller;
 
-import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.core.io.support.ResourceRegion;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpRange;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
@@ -35,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.heatedline.contentstore.FileContentStore;
 import com.heatedline.dto.FileDTO;
+import com.heatedline.exceptions.SpringContentSolrException;
 import com.heatedline.model.File;
 import com.heatedline.repository.FileRepository;
 
@@ -51,31 +47,40 @@ public class FileContentController {
 	private FileContentStore contentStore;
 
 	@PostMapping("/saveFile")
-	public ResponseEntity<?> saveFile(@RequestBody File file) {
-		file = fileRepository.save(file);
-		return new ResponseEntity<File>(file, HttpStatus.OK);
+	public ResponseEntity<?> saveFile(@RequestBody File file) throws SpringContentSolrException {
+		try {
+			file = fileRepository.save(file);
+			return new ResponseEntity<File>(file, HttpStatus.OK);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			throw new SpringContentSolrException("FileContent", "saveFile", "Failed to Save File Information to database.", e);
+		}
 	}
 
 	@RequestMapping(value = "/setContent", method = RequestMethod.POST)
-	public ResponseEntity<?> setContent(@ModelAttribute FileDTO fileDTO)
-			throws IOException {
+	public ResponseEntity<?> setContent(@ModelAttribute FileDTO fileDTO) throws SpringContentSolrException {
+		try {
+			Optional<File> f = fileRepository.findById(fileDTO.getId());
+			if (f.isPresent()) {
+				f.get().setMimeType(fileDTO.getFile()[0].getContentType());
 
-		Optional<File> f = fileRepository.findById(fileDTO.getId());
-		if (f.isPresent()) {
-			f.get().setMimeType(fileDTO.getFile()[0].getContentType());
+				contentStore.setContent(f.get(), fileDTO.getFile()[0].getInputStream());
+				
+				// save updated content-related info
+				fileRepository.save(f.get());
 
-			contentStore.setContent(f.get(), fileDTO.getFile()[0].getInputStream());
-			
-			// save updated content-related info
-			fileRepository.save(f.get());
-
-			return new ResponseEntity<Object>(HttpStatus.OK);
+				return new ResponseEntity<Object>(HttpStatus.OK);
+			} else {
+				return new ResponseEntity<String>("File not found", HttpStatus.OK);
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			throw new SpringContentSolrException("FileContent", "setContent", "Failed to set content of the File.", e);
 		}
-		return null;
 	}
 	
 	@GetMapping("renderToImage")
-	public ResponseEntity<?> renderFileToImage(@RequestParam(value = "fileId") Long id, HttpServletResponse response) {
+	public ResponseEntity<?> renderFileToImage(@RequestParam(value = "fileId") Long id, HttpServletResponse response) throws SpringContentSolrException {
 		try {
 			System.setProperty("sun.java2d.cmm", "sun.java2d.cmm.kcms.KcmsServiceProvider");
 			Optional<File> f = fileRepository.findById(id);
@@ -84,16 +89,18 @@ public class FileContentController {
 				ByteArrayInputStream bis = new ByteArrayInputStream(imageByteArr);
 			    response.setContentType(MediaType.IMAGE_JPEG_VALUE);
 			    IOUtils.copy(bis, response.getOutputStream());
+			    return new ResponseEntity<String>("Rendering Successful", HttpStatus.OK);
+			} else {
+				return new ResponseEntity<String>("File not found", HttpStatus.OK);
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new SpringContentSolrException("FileContent", "renderFileToImage", "Failed to render file to JPG format.", e);
 		}
-		return null;
 	}
 	
 	@RequestMapping(value = "/documentFiles/{fileId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_PDF_VALUE)
-	public ResponseEntity<?> getDocumentContent(@PathVariable("fileId") Long id, @RequestHeader HttpHeaders headers,  HttpServletResponse response) {
+	public ResponseEntity<?> getDocumentContent(@PathVariable("fileId") Long id, @RequestHeader HttpHeaders headers,  HttpServletResponse response) throws SpringContentSolrException {
 		try {
 			Optional<File> f = fileRepository.findById(id);
 			if (f.isPresent()) {
@@ -106,16 +113,18 @@ public class FileContentController {
 			    response.setHeader("Content-disposition", " filename=" + f.get().getName());
 
 			    response.flushBuffer();
+			    return new ResponseEntity<String>("getDocumentContent Successful", HttpStatus.OK);
+			} else {
+				return new ResponseEntity<String>("File not found", HttpStatus.OK);
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new SpringContentSolrException("FileContent", "getDocumentContent", "Failed to get document content.", e);
 		}
-		return null;
 	}
 
 	@RequestMapping(value = "/audioVideoFiles/{fileId}", method = RequestMethod.GET)
-	public ResponseEntity<ResourceRegion> getAudioVideoContent(@PathVariable("fileId") Long id, @RequestHeader HttpHeaders headers) {
+	public ResponseEntity<?> getAudioVideoContent(@PathVariable("fileId") Long id, @RequestHeader HttpHeaders headers) throws SpringContentSolrException {
 		try {
 			Optional<File> f = fileRepository.findById(id);
 			if (f.isPresent()) {
@@ -129,66 +138,88 @@ public class FileContentController {
 								.getMediaType(byteArrayResource)
 								.orElse(MediaType.APPLICATION_OCTET_STREAM))
 						.body(region);
+			} else {
+				return new ResponseEntity<String>("File not found", HttpStatus.OK);
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new SpringContentSolrException("FileContent", "getAudioVideoContent", "Failed to get Audio/Video content.", e);
 		}
-		return null;
 	}
 
-	private ResourceRegion resourceRegion(ByteArrayResource byteArrayResource, HttpHeaders headers) throws IOException {
-		long contentLength = byteArrayResource.contentLength();
-		if (headers.getRange() != null) {
-			long start = headers.getRange().get(0).getRangeStart(contentLength);
-			long end = headers.getRange().get(0).getRangeEnd(contentLength);
-			long rangeLength = Math.min(1 * 1024 * 1024, end - start + 1);
-			return new ResourceRegion(byteArrayResource, start, rangeLength);
-		} else {
-			long rangeLength = Math.min(1 * 1024 * 1024, contentLength);
-			return new ResourceRegion(byteArrayResource, 0, rangeLength);
+	private ResourceRegion resourceRegion(ByteArrayResource byteArrayResource, HttpHeaders headers) throws SpringContentSolrException {
+		try {
+			long contentLength = byteArrayResource.contentLength();
+			if (headers.getRange() != null) {
+				long start = headers.getRange().get(0).getRangeStart(contentLength);
+				long end = headers.getRange().get(0).getRangeEnd(contentLength);
+				long rangeLength = Math.min(1 * 1024 * 1024, end - start + 1);
+				return new ResourceRegion(byteArrayResource, start, rangeLength);
+			} else {
+				long rangeLength = Math.min(1 * 1024 * 1024, contentLength);
+				return new ResourceRegion(byteArrayResource, 0, rangeLength);
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			throw new SpringContentSolrException("FileContent", "resourceRegion", "", e);
 		}
 	}
 
 	
 	@GetMapping("/getFiles")
-	public ResponseEntity<?> getFiles() {
-		List<File> fileListOutput = new ArrayList<File>();
-		Iterable<File> fileList = fileRepository.findAll();
-		for(File file : fileList) {
-			fileListOutput.add(file);
+	public ResponseEntity<?> getFiles() throws SpringContentSolrException {
+		try {
+			List<File> fileListOutput = new ArrayList<File>();
+			Iterable<File> fileList = fileRepository.findAll();
+			for(File file : fileList) {
+				fileListOutput.add(file);
+			}
+			return new ResponseEntity<List<File>>(fileListOutput, HttpStatus.OK);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			throw new SpringContentSolrException("FileContent", "getFiles", "Failed to get Files", e);
 		}
-		
-		return new ResponseEntity<List<File>>(fileListOutput, HttpStatus.OK);
 	}
 	
 	@GetMapping("delete")
-	public ResponseEntity<?> delete(@RequestParam(value = "fileId") Long fileId) {
-		String status = "";
-		Optional<File> f = fileRepository.findById(fileId);
-		if (f.isPresent()) {
-			fileRepository.delete(f.get());
-			contentStore.unsetContent(f.get());
-			status = "deleted";
+	public ResponseEntity<?> delete(@RequestParam(value = "fileId") Long fileId) throws SpringContentSolrException {
+		try {
+			String status = "";
+			Optional<File> f = fileRepository.findById(fileId);
+			if (f.isPresent()) {
+				fileRepository.delete(f.get());
+				contentStore.unsetContent(f.get());
+				status = "deleted";
+			} else {
+				status = "File Not Found";
+			}
+			return new ResponseEntity<String>(status, HttpStatus.OK);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			throw new SpringContentSolrException("FileContent", "delete", "Failed to delete File.", e);
 		}
-		return new ResponseEntity<String>(status, HttpStatus.OK);
 	}
 	
 	@GetMapping("search")
-	public ResponseEntity<?> search(@RequestParam(value = "searchTerm") String searchTerm) {
-		File file = null;
-		Iterable<String> objList = contentStore.search(searchTerm);
-		List<File> fileList = new ArrayList<File>();
-		for(String s : objList) {
-			file = fileRepository.findByContentId(s);
-			fileList.add(file);
+	public ResponseEntity<?> search(@RequestParam(value = "searchTerm") String searchTerm) throws SpringContentSolrException {
+		try {
+			File file = null;
+			Iterable<String> objList = contentStore.search(searchTerm);
+			List<File> fileList = new ArrayList<File>();
+			for(String s : objList) {
+				file = fileRepository.findByContentId(s);
+				fileList.add(file);
+			}
+			
+			if(fileList.size() == 0) {
+				fileList = fileRepository.findByNameContainingIgnoreCase(searchTerm);
+			}
+			
+			return new ResponseEntity<List<File>>(fileList, HttpStatus.OK);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			throw new SpringContentSolrException("FileContent", "search", "Failed to search for the File", e);
 		}
-		
-		if(fileList.size() == 0) {
-			fileList = fileRepository.findByNameContainingIgnoreCase(searchTerm);
-		}
-		
-		return new ResponseEntity<List<File>>(fileList, HttpStatus.OK);
 	}
 
 }
