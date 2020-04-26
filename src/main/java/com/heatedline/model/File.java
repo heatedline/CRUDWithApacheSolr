@@ -25,7 +25,6 @@ public class File implements Serializable {
 	private Long id;
 	private String name;
 	private Date created = new Date();
-	private String summary;
 
 	@ContentId
 	private String contentId;
@@ -58,14 +57,6 @@ public class File implements Serializable {
 
 	public void setCreated(Date created) {
 		this.created = created;
-	}
-
-	public String getSummary() {
-		return summary;
-	}
-
-	public void setSummary(String summary) {
-		this.summary = summary;
 	}
 
 	public String getContentId() {

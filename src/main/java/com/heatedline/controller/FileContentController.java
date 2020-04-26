@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
@@ -79,6 +80,28 @@ public class FileContentController {
 		}
 	}
 	
+	@PostMapping("/saveDropboxContent")
+	public ResponseEntity<?> saveDropboxContent(@ModelAttribute FileDTO fileDTO) throws SpringContentSolrException {
+		try {
+			Optional<File> f = fileRepository.findById(fileDTO.getId());
+			if (f.isPresent()) {
+				f.get().setMimeType(fileDTO.getFile()[0].getContentType());
+
+				contentStore.setContent(f.get(), fileDTO.getFile()[0].getInputStream());
+				
+				// save updated content-related info
+				fileRepository.save(f.get());
+
+				return new ResponseEntity<Object>(HttpStatus.OK);
+			} else {
+				return new ResponseEntity<String>("File not found", HttpStatus.OK);
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			throw new SpringContentSolrException("FileContent", "setContent", "Failed to set content of the File.", e);
+		}
+	}
+	
 	@GetMapping("renderToImage")
 	public ResponseEntity<?> renderFileToImage(@RequestParam(value = "fileId") Long id, HttpServletResponse response) throws SpringContentSolrException {
 		try {
@@ -124,7 +147,7 @@ public class FileContentController {
 	}
 
 	@RequestMapping(value = "/audioVideoFiles/{fileId}", method = RequestMethod.GET)
-	public ResponseEntity<?> getAudioVideoContent(@PathVariable("fileId") Long id, @RequestHeader HttpHeaders headers) throws SpringContentSolrException {
+	public ResponseEntity<ResourceRegion> getAudioVideoContent(@PathVariable("fileId") Long id, @RequestHeader HttpHeaders headers) throws SpringContentSolrException {
 		try {
 			Optional<File> f = fileRepository.findById(id);
 			if (f.isPresent()) {
@@ -138,9 +161,8 @@ public class FileContentController {
 								.getMediaType(byteArrayResource)
 								.orElse(MediaType.APPLICATION_OCTET_STREAM))
 						.body(region);
-			} else {
-				return new ResponseEntity<String>("File not found", HttpStatus.OK);
 			}
+			return null;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			throw new SpringContentSolrException("FileContent", "getAudioVideoContent", "Failed to get Audio/Video content.", e);
