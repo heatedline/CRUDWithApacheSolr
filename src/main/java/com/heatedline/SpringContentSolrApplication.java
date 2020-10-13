@@ -66,7 +66,7 @@ public class SpringContentSolrApplication extends SpringBootServletInitializer {
 			@Override
 			public void addCorsMappings(CorsRegistry registry) {
 				System.out.println("cors configure");
-				registry.addMapping("/**").allowedOrigins("http://localhost");
+				registry.addMapping("/**").allowedOrigins("http://localhost", "http://testenvtwo.finlabsindia.com", "http://testenvtwo.finlabsindia.com:8080");
 			}
 		};
 	}
