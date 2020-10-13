@@ -14,7 +14,7 @@ public class ApplicationConfig {
 
 	@Bean
 	public SolrClient solrClient() {
-		return new HttpSolrClient.Builder("http://localhost:8983/solr/FileContent").build();
+		return new HttpSolrClient.Builder("http://testenvtwo.finlabsindia.com:8983/solr/heatedline").build();
 	}
 
 }
