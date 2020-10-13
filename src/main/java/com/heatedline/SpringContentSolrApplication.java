@@ -59,16 +59,5 @@ public class SpringContentSolrApplication extends SpringBootServletInitializer {
 		jpaTransactionManager.setEntityManagerFactory(entityManagerFactory);
 		return jpaTransactionManager;
 	}
-	
-	@Bean
-	public WebMvcConfigurer corsConfigurer() {
-		return new WebMvcConfigurer () {
-			@Override
-			public void addCorsMappings(CorsRegistry registry) {
-				System.out.println("cors configure");
-				registry.addMapping("/**").allowedOrigins("http://localhost", "http://testenvtwo.finlabsindia.com", "http://testenvtwo.finlabsindia.com:8080");
-			}
-		};
-	}
 
 }
