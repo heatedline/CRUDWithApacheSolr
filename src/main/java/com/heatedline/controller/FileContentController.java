@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.support.ResourceRegion;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -80,25 +81,23 @@ public class FileContentController {
 		}
 	}
 	
-	@PostMapping("/saveDropboxContent")
-	public ResponseEntity<?> saveDropboxContent(@ModelAttribute FileDTO fileDTO) throws SpringContentSolrException {
+	@RequestMapping(value="/getContent/{fileId}", method = RequestMethod.GET)
+	public ResponseEntity<?> getContent(@PathVariable("fileId") Long id) throws SpringContentSolrException {
 		try {
-			Optional<File> f = fileRepository.findById(fileDTO.getId());
+			Optional<File> f = fileRepository.findById(id);
 			if (f.isPresent()) {
-				f.get().setMimeType(fileDTO.getFile()[0].getContentType());
-
-				contentStore.setContent(f.get(), fileDTO.getFile()[0].getInputStream());
-				
-				// save updated content-related info
-				fileRepository.save(f.get());
-
-				return new ResponseEntity<Object>(HttpStatus.OK);
-			} else {
-				return new ResponseEntity<String>("File not found", HttpStatus.OK);
+				InputStreamResource inputStreamResource = new InputStreamResource(contentStore.getContent(f.get()));
+				HttpHeaders headers = new HttpHeaders();
+				headers.setContentLength(f.get().getContentLength());
+				headers.set("Content-Type", f.get().getMimeType());
+				headers.setAccessControlAllowOrigin("*");
+				return new ResponseEntity<Object>(inputStreamResource, headers, HttpStatus.OK);
 			}
-		} catch (IOException e) {
+			
+			return null;
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			throw new SpringContentSolrException("FileContent", "setContent", "Failed to set content of the File.", e);
+			throw new SpringContentSolrException("FileContent", "getContent", "Failed to get content of the File.", e);
 		}
 	}
 	
@@ -122,8 +121,72 @@ public class FileContentController {
 		}
 	}
 	
-	@RequestMapping(value = "/documentFiles/{fileId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_PDF_VALUE)
-	public ResponseEntity<?> getDocumentContent(@PathVariable("fileId") Long id, @RequestHeader HttpHeaders headers,  HttpServletResponse response) throws SpringContentSolrException {
+	@GetMapping("renderToHTML")
+	public ResponseEntity<?> renderToHTML(@RequestParam(value = "fileId") Long id, HttpServletResponse response) throws SpringContentSolrException {
+		try {
+			System.setProperty("sun.java2d.cmm", "sun.java2d.cmm.kcms.KcmsServiceProvider");
+			Optional<File> f = fileRepository.findById(id);
+			if (f.isPresent()) {
+				byte[] imageByteArr = IOUtils.toByteArray(contentStore.getRendition(f.get(), "text/html"));
+				ByteArrayInputStream bis = new ByteArrayInputStream(imageByteArr);
+			    response.setContentType(MediaType.TEXT_HTML_VALUE);
+			    IOUtils.copy(bis, response.getOutputStream());
+			    return new ResponseEntity<String>("Rendering Successful", HttpStatus.OK);
+			} else {
+				return new ResponseEntity<String>("File not found", HttpStatus.OK);
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			throw new SpringContentSolrException("FileContent", "renderFileToImage", "Failed to render file to JPG format.", e);
+		}
+	}
+	
+	@RequestMapping(value = "renderToPDF", method = RequestMethod.GET, produces = MediaType.APPLICATION_PDF_VALUE)
+	public ResponseEntity<?> renderToPDF(@RequestParam(value = "fileId") Long id, HttpServletResponse response) throws SpringContentSolrException {
+		try {
+			System.setProperty("sun.java2d.cmm", "sun.java2d.cmm.kcms.KcmsServiceProvider");
+			Optional<File> f = fileRepository.findById(id);
+			if (f.isPresent()) {
+				byte[] imageByteArr = IOUtils.toByteArray(contentStore.getRendition(f.get(), "application/pdf"));
+				ByteArrayInputStream bis = new ByteArrayInputStream(imageByteArr);
+			    response.setContentType(MediaType.APPLICATION_PDF_VALUE);
+			    IOUtils.copy(bis, response.getOutputStream());
+			    return new ResponseEntity<String>("Rendering Successful", HttpStatus.OK);
+			} else {
+				return new ResponseEntity<String>("File not found", HttpStatus.OK);
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			throw new SpringContentSolrException("FileContent", "renderFileToImage", "Failed to render file to JPG format.", e);
+		}
+	}
+	
+	@RequestMapping(value = "/pdfFiles/{fileId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_PDF_VALUE)
+	public ResponseEntity<?> getPdfContent(@PathVariable("fileId") Long id, @RequestHeader HttpHeaders headers,  HttpServletResponse response) throws SpringContentSolrException {
+		try {
+			Optional<File> f = fileRepository.findById(id);
+			if (f.isPresent()) {
+				byte[] content = IOUtils.toByteArray(contentStore.getContent(f.get()));
+				ByteArrayInputStream bis = new ByteArrayInputStream(content);
+				
+				IOUtils.copy(bis, response.getOutputStream());
+
+			    response.setContentType(f.get().getMimeType());
+			    response.setHeader("Content-disposition", " filename=" + f.get().getName());
+
+			    response.flushBuffer();
+			    return new ResponseEntity<String>("getDocumentContent Successful", HttpStatus.OK);
+			} else {
+				return new ResponseEntity<String>("File not found", HttpStatus.OK);
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			throw new SpringContentSolrException("FileContent", "getDocumentContent", "Failed to get document content.", e);
+		}
+	}
+	
+	@RequestMapping(value = "/otherFiles/{fileId}", method = RequestMethod.GET)
+	public ResponseEntity<?> getOtherContent(@PathVariable("fileId") Long id, @RequestHeader HttpHeaders headers,  HttpServletResponse response) throws SpringContentSolrException {
 		try {
 			Optional<File> f = fileRepository.findById(id);
 			if (f.isPresent()) {
