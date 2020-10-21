@@ -25,13 +25,14 @@ public class File implements Serializable {
 	private Long id;
 	private String name;
 	private Date created = new Date();
+	private String uploadedBy;
 
 	@ContentId
 	private String contentId;
-	
+
 	@ContentLength
 	private long contentLength;
-	
+
 	@MimeType
 	private String mimeType = "text/plain";
 
@@ -57,6 +58,14 @@ public class File implements Serializable {
 
 	public void setCreated(Date created) {
 		this.created = created;
+	}
+
+	public String getUploadedBy() {
+		return uploadedBy;
+	}
+
+	public void setUploadedBy(String uploadedBy) {
+		this.uploadedBy = uploadedBy;
 	}
 
 	public String getContentId() {
